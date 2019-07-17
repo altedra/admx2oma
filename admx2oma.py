@@ -61,7 +61,7 @@ def run():
         
         if hasattr(policy, "elements"):
             for element in policy.elements.getchildren():
-                v = PolicyOutput.PolicyValue(element.get('id'), element.tag)
+                v = PolicyOutput.PolicyValue(element.get('id'), element.tag, element.get('valueName') or element.get('id'), element.get('required'))
                 p.values.append(v)
                 if element.tag in ('enum'):
                     for item in element.getchildren():
@@ -71,17 +71,19 @@ def run():
                 if element.tag in ('boolean'):
                     v.valEnumOptions.append(element.trueValue.getchildren()[0].get("value"))
                     v.valEnumOptions.append(element.falseValue.getchildren()[0].get("value"))
+                    v.value = v.valEnumOptions[0]
         p.print()
 
 
 class PolicyOutput:
     class PolicyValue:
-        def __init__(self, valName = '', valType = 'text', value = '', valID = None):
-            self.valName    = valName
+        def __init__(self, valID = '', valType = 'text', valName = None, required = None, value = ''):
+            self.valID      = valID
             self.valType    = valType
-            self.valID      = valID or valName
+            self.valName    = valName or valID
             self.value      = value
             self.valEnumOptions = []
+            self.required   = required
         
     def __init__(self, name = ""):
         self.polName    = name
@@ -93,7 +95,9 @@ class PolicyOutput:
     def print(self):
         print(polTemplate.format(**self.__dict__))
         for value in self.values:
-            out = {'valEnumOptionsOut': '(%s)'% '|'.join(value.valEnumOptions) if len(value.valEnumOptions) else ''}
+            out = {}
+            out.update({'valEnumOptionsOut': '(%s)'% '|'.join(value.valEnumOptions) if len(value.valEnumOptions) else ''})
+            out.update({'requiredOut': 'required' if value.required else 'optional'})
             out.update(value.__dict__)
             print(valTemplate.format(**out))
         
@@ -110,9 +114,9 @@ Disabled value: <disabled/>
 
 valTemplate = """
 -------------------------------
-{valName}
+{valID} ({requiredOut})
 Value type: {valType} {valEnumOptionsOut}
-<data id='{valID}' value='{value}'/>
+<data id='{valName}' value='{value}'/>
 """.strip()
 
 if __name__ == "__main__":

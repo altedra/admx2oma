@@ -69,8 +69,8 @@ def run():
                         v.valEnumOptions.append(str(val.get("value") if val.get("value") is not None else val.text))
                     v.value = v.valEnumOptions[0]
                 if element.tag in ('boolean'):
-                    v.valEnumOptions.append(element.trueValue.getchildren()[0].get("value"))
-                    v.valEnumOptions.append(element.falseValue.getchildren()[0].get("value"))
+                    v.valEnumOptions.append('true')
+                    v.valEnumOptions.append('false')
                     v.value = v.valEnumOptions[0]
         p.print()
 
@@ -94,12 +94,17 @@ class PolicyOutput:
 
     def print(self):
         print(polTemplate.format(**self.__dict__))
+        dataTagList = []
         for value in self.values:
+            dataTagList.append(dataTagTemplate.format(**value.__dict__))
             out = {}
             out.update({'valEnumOptionsOut': '(%s)'% '|'.join(value.valEnumOptions) if len(value.valEnumOptions) else ''})
             out.update({'requiredOut': 'required' if value.required else 'optional'})
+            out.update({'dataTag': dataTagList[-1]})
             out.update(value.__dict__)
             print(valTemplate.format(**out))
+        dataTagList.insert(0, '') if len(dataTagList) else dataTagList
+        print(recordTemplate.format(**{'dataTags': '\n'.join(dataTagList)}))
         
 
 polTemplate = """
@@ -112,11 +117,36 @@ Enabled value: <enabled/>
 Disabled value: <disabled/>
 """.rstrip()
 
+polTemplate = """
+===============================
+Policy: {polName}
+===============================
+{omaUser}
+{omaDevice}
+(<enabled/>|<disabled/>)
+""".rstrip()
+
+dataTagTemplate = """
+<data id='{valID}' value='{value}'/>
+""".strip()
+
 valTemplate = """
 -------------------------------
-{valID} ({requiredOut})
+{valName} ({requiredOut})
 Value type: {valType} {valEnumOptionsOut}
-<data id='{valName}' value='{value}'/>
+{dataTag}
+""".strip()
+
+valTemplate = """
+-------------------------------
+Key Name:   {valName}
+Key ID:     {valID}
+Value type: {valType} {valEnumOptionsOut}
+""".strip()
+
+recordTemplate = """
+----------- Example -----------
+<enabled/>{dataTags}
 """.strip()
 
 if __name__ == "__main__":

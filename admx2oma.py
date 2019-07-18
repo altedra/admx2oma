@@ -3,7 +3,7 @@ from lxml import objectify
 
 usage = """
 Usage is:
-py parse.py <your.admx> <ADMX-OMA-URI>
+py admx2oma.py <your.admx> <ADMX-OMA-URI>
 <ADMX-OMA-URI>  : The OMA-URI you specifyed in Intune when ingesting admx file
                   Take care, the OMA-URI is case sensitive.
 <your.admx>     : The admx file you ingested
@@ -34,10 +34,11 @@ def run():
 
     admx = objectify.parse(admxFile)
     r = admx.getroot()
-    for element in r.categories.getchildren():
-        catHierarchie[element.get("name")] = element.parentCategory.get('ref')
+    for category in r.categories.getchildren():
+        ref = category.parentCategory.get('ref') if hasattr(category, "parentCategory") else ":"
+        catHierarchie[category.get("name")] = ref
 
-    for policy in r.policies.findall("policy"):
+    for policy in r.policies.findall("policy", namespaces=r.nsmap):
         out = templatestring
         out = out.replace("<policy>", policy.get("name"))
 
@@ -54,9 +55,9 @@ def run():
 
         p = PolicyOutput(policy.get("name"))
         
-        if policy.get("class") in ("Both", "user"):
+        if policy.get("class") in ("Both", "User"):
             p.omaUser = out.replace("<scope>", "User")
-        if policy.get("class") in ("Both", "device"):
+        if policy.get("class") in ("Both", "Machine"):
             p.omaDevice = out.replace("<scope>", "Device")
         
         if hasattr(policy, "elements"):
